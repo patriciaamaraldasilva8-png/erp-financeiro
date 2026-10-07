@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Educacional - Simulador de Gestão Financeira</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #2980b9;
+            --success: #27ae60;
+            --danger: #c0392b;
+            --warning: #f39c12;
+            --bg: #f8f9fa;
+            --text: #333;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header { background: var(--primary); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .offline-badge { background: var(--success); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 12px 24px; border: none; background: #e0e0e0; cursor: pointer; border-radius: 6px; font-weight: bold; transition: 0.3s; }
+        .tab-btn.active { background: var(--accent); color: white; }
+
+        .tab-content { display: none; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .tab-content.active { display: block; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: var(--secondary); }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        button.btn-add { background: var(--success); color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-size: 1rem; cursor: pointer; font-weight: bold; }
+        button.btn-add:hover { opacity: 0.9; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: left; }
+        th { background: #f1f1f1; color: var(--secondary); }
+
+        .kpi-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .card { padding: 15px; border-radius: 8px; color: white; text-align: center; }
+        .card.blue { background: #3498db; }
+        .card.green { background: var(--success); }
+        .card.red { background: var(--danger); }
+        .card.purple { background: #9b59b6; }
+        .card h3 { font-size: 0.9rem; margin-bottom: 8px; opacity: 0.9; }
+        .card p { font-size: 1.5rem; font-weight: bold; }
+
+        .result-banner { text-align: center; padding: 15px; border-radius: 8px; font-size: 1.3rem; font-weight: bold; margin-top: 20px; }
+        .result-lucro { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result-prejuizo { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .result-empate { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        .action-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-pay { background: var(--success); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>Simulador ERP Financeiro</h1>
+            <p>Laboratório Prático de Operações e Fluxo de Caixa</p>
+        </div>
+        <span class="offline-badge">✓ Funcionando Offline (Salvo Localmente)</span>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('operacoes')">1. Lançar Operações</button>
+        <button class="tab-btn" onclick="switchTab('receber')">2. Contas a Receber</button>
+        <button class="tab-btn" onclick="switchTab('pagar')">3. Contas a Pagar</button>
+        <button class="tab-btn" onclick="switchTab('dre')">4. DRE (Competência)</button>
+        <button class="tab-btn" onclick="switchTab('caixa')">5. Fluxo de Caixa</button>
+    </div>
+
+    <!-- ABA 1: LANÇAR OPERAÇÕES -->
+    <div id="operacoes" class="tab-content active">
+        <h2>Registrar Nova Operação Financeira</h2>
+        <br>
+        <form id="formOperacao" onsubmit="adicionarOperacao(event)">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Tipo de Operação:</label>
+                    <select id="tipo" required>
+                        <option value="Venda">Venda (Faturamento)</option>
+                        <option value="Despesa">Despesa Operacional</option>
+                        <option value="Custo">Custo de Produtos/Serviços</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Descrição:</label>
+                    <input type="text" id="descricao" placeholder="Ex: Venda de Mercadorias, Aluguel, etc." required>
+                </div>
+                <div class="form-group">
+                    <label>Valor (R$):</label>
+                    <input type="number" step="0.01" id="valor" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Condição de Pagamento:</label>
+                    <select id="condicao" required>
+                        <option value="Vista">À Vista (Caixa Imediato)</option>
+                        <option value="Prazo">A Prazo (Gerar Título)</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn-add">Registrar Operação</button>
+        </form>
+
+        <h3 style="margin-top: 30px;">Histórico de Operações Registradas</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Condição</th>
+                </tr>
+            </thead>
+            <tbody id="listaOperacoes"></tbody>
+        </table>
+        <button onclick="limparDados()" style="margin-top:20px; background:#e74c3c; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">Reiniciar Exercício</button>
+    </div>
+
+    <!-- ABA 2: CONTAS A RECEBER -->
+    <div id="receber" class="tab-content">
+        <h2>Contas a Receber (Vendas a Prazo)</h2>
+        <p>Recebimentos pendentes. Clique em "Baixar" quando o cliente efetuar o pagamento para entrar no Caixa.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="listaReceber"></tbody>
+        </table>
+    </div>
+
+    <!-- ABA 3: CONTAS A PAGAR -->
+    <div id="pagar" class="tab-content">
+        <h2>Contas a Pagar (Despesas/Custos a Prazo)</h2>
+        <p>Pagamentos pendentes. Clique em "Pagar" para dar saída do dinheiro do Caixa.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="listaPagar"></tbody>
+        </table>
+    </div>
+
+    <!-- ABA 4: DRE -->
+    <div id="dre" class="tab-content">
+        <h2>Demonstração do Resultado do Exercício (DRE)</h2>
+        <p>Apurado pelo <strong>Regime de Competência</strong> (Independe se o dinheiro já entrou ou saiu).</p>
+        <br>
+        <table>
+            <tr>
+                <td><strong>(+) Faturamento Bruto (Vendas)</strong></td>
+                <td id="dreFaturamento" style="text-align:right; color:green; font-weight:bold;">R$ 0,00</td>
+            </tr>
+            <tr>
+                <td><strong>(-) Custos Operacionais</strong></td>
+                <td id="dreCustos" style="text-align:right; color:red;">R$ 0,00</td>
+            </tr>
+            <tr>
+                <td><strong>(-) Despesas Operacionais</strong></td>
+                <td id="dreDespesas" style="text-align:right; color:red;">R$ 0,00</td>
+            </tr>
+            <tr style="background:#f9f9f9; font-size:1.1rem;">
+                <td><strong>(=) Resultado Econômico (Lucro/Prejuízo)</strong></td>
+                <td id="dreResultado" style="text-align:right; font-weight:bold;">R$ 0,00</td>
+            </tr>
+        </table>
+        
+        <div id="bannerResultadoDRE" class="result-banner"></div>
+    </div>
+
+    <!-- ABA 5: FLUXO DE CAIXA -->
+    <div id="caixa" class="tab-content">
+        <h2>Demonstrativo de Fluxo de Caixa (Regime de Caixa)</h2>
+        <p>Mostra as entradas e saídas <strong>efetivas</strong> de dinheiro no banco/caixa.</p>
+        <br>
+        <div class="kpi-cards">
+            <div class="card blue">
+                <h3>Total Entradas</h3>
+                <p id="caixaEntradas">R$ 0,00</p>
+            </div>
+            <div class="card red">
+                <h3>Total Saídas</h3>
+                <p id="caixaSaidas">R$ 0,00</p>
+            </div>
+            <div class="card green" id="cardSaldo">
+                <h3>Saldo Atual em Caixa</h3>
+                <p id="caixaSaldo">R$ 0,00</p>
+            </div>
+            <div class="card purple">
+                <h3>A Receber Futuro</h3>
+                <p id="caixaPendente">R$ 0,00</p>
+            </div>
+        </div>
+
+        <h3>Extrato de Movimentações Reais</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
+            <tbody id="extratoCaixa"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Inicialização do Estado (Banco de Dados Local)
+    let db = JSON.parse(localStorage.getItem('erp_edu_db')) || {
+        operacoes: [],
+        contasReceber: [],
+        contasPagar: [],
+        movimentacoesCaixa: []
+    };
+
+    function salvar() {
+        localStorage.setItem('erp_edu_db', JSON.stringify(db));
+        atualizarTelas();
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    function adicionarOperacao(e) {
+        e.preventDefault();
+        const tipo = document.getElementById('tipo').value;
+        const descricao = document.getElementById('descricao').value;
+        const valor = parseFloat(document.getElementById('valor').value);
+        const condicao = document.getElementById('condicao').value;
+
+        const operacao = { id: Date.now(), tipo, descricao, valor, condicao };
+        db.operacoes.push(operacao);
+
+        // Lógica de Integração ERP
+        if (tipo === 'Venda') {
+            if (condicao === 'Vista') {
+                db.movimentacoesCaixa.push({ tipo: 'Entrada', descricao: `Venda à Vista: ${descricao}`, valor });
+            } else {
+                db.contasReceber.push({ id: operacao.id, descricao, valor, status: 'Pendente' });
+            }
+        } else { // Despesa ou Custo
+            if (condicao === 'Vista') {
+                db.movimentacoesCaixa.push({ tipo: 'Saída', descricao: `${tipo} à Vista: ${descricao}`, valor });
+            } else {
+                db.contasPagar.push({ id: operacao.id, descricao, valor, status: 'Pendente' });
+            }
+        }
+
+        document.getElementById('formOperacao').reset();
+        salvar();
+    }
+
+    function baixarRecebimento(id) {
+        const idx = db.contasReceber.findIndex(item => item.id === id);
+        if (idx !== -1) {
+            const item = db.contasReceber[idx];
+            item.status = 'Recebido';
+            db.movimentacoesCaixa.push({ tipo: 'Entrada', descricao: `Recebimento a Prazo: ${item.descricao}`, valor: item.valor });
+            salvar();
+        }
+    }
+
+    function baixarPagamento(id) {
+        const idx = db.contasPagar.findIndex(item => item.id === id);
+        if (idx !== -1) {
+            const item = db.contasPagar[idx];
+            item.status = 'Pago';
+            db.movimentacoesCaixa.push({ tipo: 'Saída', descricao: `Pagamento a Prazo: ${item.descricao}`, valor: item.valor });
+            salvar();
+        }
+    }
+
+    function atualizarTelas() {
+        // Renderizar Operações
+        const listaOp = document.getElementById('listaOperacoes');
+        listaOp.innerHTML = db.operacoes.map(op => `
+            <tr>
+                <td>${op.tipo}</td>
+                <td>${op.descricao}</td>
+                <td>R$ ${op.valor.toFixed(2)}</td>
+                <td>${op.condicao}</td>
+            </tr>
+        `).join('');
+
+        // Renderizar Receber
+        const listaRec = document.getElementById('listaReceber');
+        listaRec.innerHTML = db.contasReceber.map(rec => `
+            <tr>
+                <td>${rec.descricao}</td>
+                <td>R$ ${rec.valor.toFixed(2)}</td>
+                <td>${rec.status}</td>
+                <td>${rec.status === 'Pendente' ? `<button class="action-btn btn-pay" onclick="baixarRecebimento(${rec.id})">Baixar Recebimento</button>` : '✓ Recebido'}</td>
+            </tr>
+        `).join('');
+
+        // Renderizar Pagar
+        const listaPag = document.getElementById('listaPagar');
+        listaPag.innerHTML = db.contasPagar.map(pag => `
+            <tr>
+                <td>${pag.descricao}</td>
+                <td>R$ ${pag.valor.toFixed(2)}</td>
+                <td>${pag.status}</td>
+                <td>${pag.status === 'Pendente' ? `<button class="action-btn btn-pay" style="background:var(--danger)" onclick="baixarPagamento(${pag.id})">Baixar Pagamento</button>` : '✓ Pago'}</td>
+            </tr>
+        `).join('');
+
+        // Calcular DRE (Competência)
+        let faturamento = db.operacoes.filter(o => o.tipo === 'Venda').reduce((acc, o) => acc + o.valor, 0);
+        let custos = db.operacoes.filter(o => o.tipo === 'Custo').reduce((acc, o) => acc + o.valor, 0);
+        let despesas = db.operacoes.filter(o => o.tipo === 'Despesa').reduce((acc, o) => acc + o.valor, 0);
+        let resultadoDRE = faturamento - (custos + despesas);
+
+        document.getElementById('dreFaturamento').innerText = `R$ ${faturamento.toFixed(2)}`;
+        document.getElementById('dreCustos').innerText = `R$ ${custos.toFixed(2)}`;
+        document.getElementById('dreDespesas').innerText = `R$ ${despesas.toFixed(2)}`;
+        
+        const elResDRE = document.getElementById('dreResultado');
+        elResDRE.innerText = `R$ ${resultadoDRE.toFixed(2)}`;
+        
+        const bannerDRE = document.getElementById('bannerResultadoDRE');
+        if (resultadoDRE > 0) {
+            bannerDRE.className = 'result-banner result-lucro';
+            bannerDRE.innerText = `LUCRO OPERACIONAL: R$ ${resultadoDRE.toFixed(2)}`;
+        } else if (resultadoDRE < 0) {
+            bannerDRE.className = 'result-banner result-prejuizo';
+            bannerDRE.innerText = `PREJUÍZO OPERACIONAL: R$ ${Math.abs(resultadoDRE).toFixed(2)}`;
+        } else {
+            bannerDRE.className = 'result-banner result-empate';
+            bannerDRE.innerText = `PONTO DE EQUILÍBRIO (EMPATE): R$ 0,00`;
+        }
+
+        // Calcular Fluxo de Caixa (Caixa)
+        let entradas = db.movimentacoesCaixa.filter(m => m.tipo === 'Entrada').reduce((acc, m) => acc + m.valor, 0);
+        let saidas = db.movimentacoesCaixa.filter(m => m.tipo === 'Saída').reduce((acc, m) => acc + m.valor, 0);
+        let saldoCaixa = entradas - saidas;
+        let pendenteReceber = db.contasReceber.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + r.valor, 0);
+
+        document.getElementById('caixaEntradas').innerText = `R$ ${entradas.toFixed(2)}`;
+        document.getElementById('caixaSaidas').innerText = `R$ ${saidas.toFixed(2)}`;
+        document.getElementById('caixaSaldo').innerText = `R$ ${saldoCaixa.toFixed(2)}`;
+        document.getElementById('caixaPendente').innerText = `R$ ${pendenteReceber.toFixed(2)}`;
+
+        // Renderizar Extrato
+        const extrato = document.getElementById('extratoCaixa');
+        extrato.innerHTML = db.movimentacoesCaixa.map(m => `
+            <tr>
+                <td style="color: ${m.tipo === 'Entrada' ? 'green' : 'red'}; font-weight:bold;">${m.tipo}</td>
+                <td>${m.descricao}</td>
+                <td>R$ ${m.valor.toFixed(2)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function limparDados() {
+        if(confirm("Deseja apagar todos os dados e reiniciar a simulação?")) {
+            localStorage.removeItem('erp_edu_db');
+            db = { operacoes: [], contasReceber: [], contasPagar: [], movimentacoesCaixa: [] };
+            atualizarTelas();
+        }
+    }
+
+    // Carregar dados iniciais
+    atualizarTelas();
+</script>
+
+</body>
+</html>
